@@ -1,6 +1,6 @@
 # City Population Service
 
-This service provides APIs for querying and updating city populations.
+This service provides an API for querying and updating city populations.
 
 ## Tech Stack
 
