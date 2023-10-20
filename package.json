@@ -4,7 +4,7 @@
   "description": "This service provides an API for querying and updating city populations.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha ./tests/*.test.js",
+    "test": "NODE_ENV=test mocha ./tests/setupDatabase.test.js ./tests/*.test.js",
     "start": "node ./main.js"
   },
   "keywords": [],

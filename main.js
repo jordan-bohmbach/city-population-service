@@ -1,17 +1,20 @@
+const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const { initializeDatabase } = require('./setupDatabase');
-const { server } = require('./server');
+const { startServer, fastify } = require('./server');
 
-const main = async () => {
-    const db = new sqlite3.Database('./city_population.db');
+const dbPath = path.join(__dirname, 'city_populations.db');
+
+const main = () => {
+    const db = new sqlite3.Database(dbPath);
     initializeDatabase(db);
     
-    server.listen({ port: 5555 }, (err) => {
+    startServer((err) => {
         if (err) {
-            server.log.error(err);
+            fastify.log.error(err);
             process.exit(1);
         } else {
-            server.log.info(`server listening on ${server.server.address().port}`);
+            fastify.log.info(`server listening on ${fastify.server.address().port}`);
         }
     });
 }
