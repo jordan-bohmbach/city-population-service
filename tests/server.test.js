@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const { startServer, fastify } = require('../server.js');

@@ -18,7 +18,7 @@ fastify.register(fastifySqlite, { dbFile })
 fastify.get('/api/population/state/:state/city/:city', (request, reply) => {
     const { state, city } = request.params;
 
-    fastify.sqlite.all(POPULATION_BY_STATE_CITY, [state.toLowerCase(), city.toLowerCase()], (err, rows) => {
+    fastify.sqlite.all(POPULATION_BY_STATE_CITY, [state.toLowerCase(), city.toLowerCase()], (rows) => {
         if (rows.length === 0) {
             return reply.code(400).send({ error: "State/city combo not found." });
         }
@@ -34,30 +34,20 @@ fastify.put('/api/population/state/:state/city/:city', (request, reply) => {
         return reply.code(400).send({ error: "Invalid population data." });
     }
 
-    fastify.sqlite.get(POPULATION_BY_STATE_CITY, [state.toLowerCase(), city.toLowerCase()], (err, row) => {
-        if (err) {
-            return reply.code(500).send({ error: "Database error." });
-        }
-
+    fastify.sqlite.get(POPULATION_BY_STATE_CITY, [state.toLowerCase(), city.toLowerCase()], (row) => {
         if (row) {
-            fastify.sqlite.run(UPDATE_POPULATION_BY_STATE_CITY, [population, state.toLowerCase(), city.toLowerCase()], (err) => {
-                if (err) {
-                    return reply.code(500).send({ error: "Failed to update population." });
-                }
+            fastify.sqlite.run(UPDATE_POPULATION_BY_STATE_CITY, [population, state.toLowerCase(), city.toLowerCase()], () => {
                 return reply.code(200).send({ message: "Updated successfully." });
             });
         } else {
-            fastify.sqlite.run(INSERT_NEW_STATE_CITY_POPULATION, [state.toLowerCase(), city.toLowerCase(), population], (err) => {
-                if (err) {
-                    return reply.code(500).send({ error: "Failed to insert data." });
-                }
+            fastify.sqlite.run(INSERT_NEW_STATE_CITY_POPULATION, [state.toLowerCase(), city.toLowerCase(), population], () => {
                 return reply.code(201).send({ message: "Created successfully." });
             });
         }
     });
 });
 
-fastify.setNotFoundHandler((request, reply) => {
+fastify.setNotFoundHandler((reply) => {
     reply
       .code(404)
       .send({ error: 'Invalid route. Please use /api/population/state/:state/city/:city' });
