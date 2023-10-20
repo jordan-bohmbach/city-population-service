@@ -3,6 +3,11 @@ const fastifySqlite = require('fastify-sqlite')
 const fastify = require('fastify')({
     logger: true
   })
+const { 
+    POPULATION_BY_STATE_CITY,
+    UPDATE_POPULATION_BY_STATE_CITY,
+    INSERT_NEW_STATE_CITY_POPULATION
+} = require('./queries.js');
 
 const dbFile = process.env.NODE_ENV === 'test'
     ? path.join(__dirname, 'tests/city_populations_test.db')
@@ -13,11 +18,10 @@ fastify.register(fastifySqlite, { dbFile })
 fastify.get('/api/population/state/:state/city/:city', (request, reply) => {
     const { state, city } = request.params;
 
-    fastify.sqlite.all('SELECT population FROM populations WHERE state = ? AND city = ?', [state.toLowerCase(), city.toLowerCase()], (err, rows) => {
+    fastify.sqlite.all(POPULATION_BY_STATE_CITY, [state.toLowerCase(), city.toLowerCase()], (err, rows) => {
         if (rows.length === 0) {
             return reply.code(400).send({ error: "State/city combo not found." });
         }
-
         return reply.send({ population: rows[0].population });
     });
 });
@@ -30,20 +34,20 @@ fastify.put('/api/population/state/:state/city/:city', (request, reply) => {
         return reply.code(400).send({ error: "Invalid population data." });
     }
 
-    fastify.sqlite.get('SELECT population FROM populations WHERE state = ? AND city = ?', [state.toLowerCase(), city.toLowerCase()], (err, row) => {
+    fastify.sqlite.get(POPULATION_BY_STATE_CITY, [state.toLowerCase(), city.toLowerCase()], (err, row) => {
         if (err) {
             return reply.code(500).send({ error: "Database error." });
         }
 
         if (row) {
-            fastify.sqlite.run('UPDATE populations SET population = ? WHERE state = ? AND city = ?', [population, state.toLowerCase(), city.toLowerCase()], (err) => {
+            fastify.sqlite.run(UPDATE_POPULATION_BY_STATE_CITY, [population, state.toLowerCase(), city.toLowerCase()], (err) => {
                 if (err) {
                     return reply.code(500).send({ error: "Failed to update population." });
                 }
                 return reply.code(200).send({ message: "Updated successfully." });
             });
         } else {
-            fastify.sqlite.run('INSERT INTO populations (state, city, population) VALUES (?, ?, ?)', [state.toLowerCase(), city.toLowerCase(), population], (err) => {
+            fastify.sqlite.run(INSERT_NEW_STATE_CITY_POPULATION, [state.toLowerCase(), city.toLowerCase(), population], (err) => {
                 if (err) {
                     return reply.code(500).send({ error: "Failed to insert data." });
                 }
