@@ -1,6 +1,5 @@
 const chai = require('chai');
 const expect = chai.expect;
-const sinon = require('sinon');
 const sqlite3 = require('sqlite3').verbose();
 
 const { initializeDatabase } = require('../setupDatabase.js');
@@ -8,12 +7,13 @@ const { initializeDatabase } = require('../setupDatabase.js');
 describe('setupDatabase.js', () => {
     let db;
 
-    beforeEach((done) => {
-        db = new sqlite3.Database('../city_population.db');
+    before(function(done) {
+        this.timeout(10000);
+        db = new sqlite3.Database('./tests/city_populations_test.db');
         initializeDatabase(db, done);
     });
 
-    afterEach((done) => {
+    after((done) => {
         db.close(done);
     });
 
@@ -41,7 +41,8 @@ describe('setupDatabase.js', () => {
         });
     });
 
-    it('should not overwrite existing data on repeated runs', (done) => {
+    it('should not overwrite existing data on repeated runs', function (done) {
+        this.timeout(5000);
         db.run(`
             INSERT OR IGNORE 
             INTO populations (city, state, population) 

@@ -4,16 +4,66 @@ const fastify = require('fastify')({
     logger: true
   })
 
-fastify.register(fastifySqlite, {
-    dbFile: path.join(__dirname, 'city_population.db')
-})
+const dbFile = process.env.NODE_ENV === 'test'
+    ? path.join(__dirname, 'tests/city_populations_test.db')
+    : path.join(__dirname, 'city_populations.db');
+
+fastify.register(fastifySqlite, { dbFile })
 
 fastify.get('/api/population/state/:state/city/:city', (request, reply) => {
-    console.log('get route goes here')
+    const { state, city } = request.params;
+
+    fastify.sqlite.all('SELECT population FROM populations WHERE state = ? AND city = ?', [state.toLowerCase(), city.toLowerCase()], (err, rows) => {
+        if (rows.length === 0) {
+            return reply.code(400).send({ error: "State/city combo not found." });
+        }
+
+        return reply.send({ population: rows[0].population });
+    });
 });
 
 fastify.put('/api/population/state/:state/city/:city', (request, reply) => {
-    console.log('put route goes here')
+    const { state, city } = request.params;
+    const population = parseInt(request.body, 10);
+
+    if (isNaN(population)) {
+        return reply.code(400).send({ error: "Invalid population data." });
+    }
+
+    fastify.sqlite.get('SELECT population FROM populations WHERE state = ? AND city = ?', [state.toLowerCase(), city.toLowerCase()], (err, row) => {
+        if (err) {
+            return reply.code(500).send({ error: "Database error." });
+        }
+
+        if (row) {
+            fastify.sqlite.run('UPDATE populations SET population = ? WHERE state = ? AND city = ?', [population, state.toLowerCase(), city.toLowerCase()], (err) => {
+                if (err) {
+                    return reply.code(500).send({ error: "Failed to update population." });
+                }
+                return reply.code(200).send({ message: "Updated successfully." });
+            });
+        } else {
+            fastify.sqlite.run('INSERT INTO populations (state, city, population) VALUES (?, ?, ?)', [state.toLowerCase(), city.toLowerCase(), population], (err) => {
+                if (err) {
+                    return reply.code(500).send({ error: "Failed to insert data." });
+                }
+                return reply.code(201).send({ message: "Created successfully." });
+            });
+        }
+    });
 });
 
-module.exports.server = fastify;
+fastify.setNotFoundHandler((request, reply) => {
+    reply
+      .code(404)
+      .send({ error: 'Invalid route. Please use /api/population/state/:state/city/:city' });
+  });
+
+const startServer = (callback) => {
+    fastify.listen({ port: 5555 }, callback);
+}
+
+module.exports = {
+    startServer,
+    fastify,
+};
