@@ -41,6 +41,7 @@ npm start
 
 To run the tests:
 
+Stop the server if it's running
 ```
 npm test
 ```
