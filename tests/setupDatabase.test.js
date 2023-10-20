@@ -3,37 +3,64 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const sqlite3 = require('sqlite3').verbose();
 
-const { isDatabaseSetUp, setupDatabase, db } = require('../setupDatabase.js');
+const { initializeDatabase } = require('../setupDatabase.js');
 
 describe('setupDatabase.js', () => {
-    beforeEach(() => {
-        sinon.stub(sqlite3, 'Database').returns({
-            get: (query, cb) => cb(null, { count: 0 }),
-            run: (query, ...params) => ({}),
+    let db;
+
+    beforeEach((done) => {
+        db = new sqlite3.Database('../city_population.db');
+        initializeDatabase(db, done);
+    });
+
+    afterEach((done) => {
+        db.close(done);
+    });
+
+    it('should create a populations table', (done) => {
+        db.get(`
+            SELECT count(*) as count 
+            FROM sqlite_master 
+            WHERE type='table' 
+            AND name='populations'
+        `, (err, row) => {
+            if (err) done(err);
+            expect(row.count).to.equal(1)
+            done();
         });
     });
 
-    afterEach(() => {
-        sqlite3.Database.restore();
-    });
-
-    describe('isDatabaseSetUp', () => {
-
-        it('should call the callback with false if the table does not exist', (done) => {
-            isDatabaseSetUp((err, isSetUp) => {
-                expect(err).to.be.null;
-                expect(isSetUp).to.be.false;
-                done();
-            });
+    it('should insert data from CSV into populations table', (done) => {
+        db.get(`
+            SELECT count(*) as count 
+            FROM populations
+        `, (err, row) => {
+            if (err) done(err);
+            expect(row.count).to.be.above(0);
+            done();
         });
     });
 
-    describe('setupDatabase', () => {
-
-        it('should call the callback without error on success', (done) => {
-            setupDatabase((err) => {
-                expect(err).to.be.null;
-                done();
+    it('should not overwrite existing data on repeated runs', (done) => {
+        db.run(`
+            INSERT OR IGNORE 
+            INTO populations (city, state, population) 
+            VALUES (?, ?, ?)
+        `, ["testcity", "teststate", 99999], (err) => {
+            if (err) return done(err);
+    
+            initializeDatabase(db, () => {
+                db.get(`
+                    SELECT population 
+                    FROM populations 
+                    WHERE city='testcity' 
+                    AND state='teststate'
+                `, (err, row) => {
+                    if (err) return done(err);
+                    
+                    expect(row.population).to.equal(99999);
+                    done();
+                });
             });
         });
     });
