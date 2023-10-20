@@ -31,7 +31,7 @@ fastify.put('/api/population/state/:state/city/:city', (request, reply) => {
     const population = parseInt(request.body, 10);
 
     if (isNaN(population)) {
-        return reply.code(400).send({ error: "Invalid population data." });
+        return reply.code(400).send({ error: "Invalid population data, please include only an integer." });
     }
 
     fastify.sqlite.get(POPULATION_BY_STATE_CITY, [state.toLowerCase(), city.toLowerCase()], (err, row) => {

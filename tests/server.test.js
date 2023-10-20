@@ -76,7 +76,7 @@ describe('City Population API', () => {
       .send("invalid")
       .end((err, res) => {
         expect(res).to.have.status(400);
-        expect(res.body.error).to.equal('Invalid population data.');
+        expect(res.body.error).to.equal('Invalid population data, please include only an integer.');
         done();
       });
   });
